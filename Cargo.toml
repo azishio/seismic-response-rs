@@ -1,7 +1,19 @@
 [package]
 name = "seismic-response"
+authors = ["azishio"]
 version = "0.1.0"
 edition = "2021"
+
+description = "Seismic response analysis of a single particle system is performed using Newmark's beta method."
+license = "MIT OR Apache-2.0"
+
+repository = "https://github.com/azishio/seismic-response-rs"
+homepage = "https://crates.io/crates/seismic-response"
+documentation = "https://docs.rs/seismic-response"
+
+keywords = ["seismic", "analysis", "newmark", "beta"]
+categories = ["mathematics", "science", "wasm"]
+
 
 [lib]
 crate-type = ["lib", "cdylib"]

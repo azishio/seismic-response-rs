@@ -1,36 +1,66 @@
 use std::f64::consts::PI;
 
+/// Response analysis parameters
+///
+/// 応答解析のパラメータ
 #[derive(Debug, Copy, Clone)]
 pub struct ResponseAnalyzerParams {
+    /// /// Natural period [ms]
+    ///
+    /// 固有周期 [ms]
     natural_period_ms: u32,
+
+    /// Input data time resolution [ms]
+    ///
+    /// 入力データの時間分解能 [ms]
     dt_ms: u32,
-    mass: f64,
-    damping: f64,
-    beta: f64,
-    init_x: f64,
-    init_v: f64,
-    init_a: f64,
-    init_xg: f64,
-}
 
-#[derive(Debug, Copy, Clone)]
-pub struct ResponseAnalyzer {
-    /// 時間分解能 [s]
-    dt: f64,
-
-    /// 剛性
-    hardness: f64,
-
+    /// Mass [kg]
+    ///
     /// 質量 [kg]
     mass: f64,
 
+    /// Damping ratio
+    ///
     /// 減衰定数
     damping: f64,
 
+    /// β of Newmark-β method
+    ///
     /// ニューマークβ法のβ
     beta: f64,
 
-    /// 初期条件
+    /// Initial response displacement [m]
+    ///
+    /// 初期応答変位 [m]
+    init_x: f64,
+
+    /// Initial response velocity [m/s]
+    ///
+    /// 初期応答速度 [m/s]
+    init_v: f64,
+
+    /// Initial response acceleration [gal]
+    ///
+    /// 初期応答加速度 [gal]
+    init_a: f64,
+
+    /// Initial ground acceleration [gal]
+    ///
+    /// 初期地震動 [gal]
+    init_xg: f64,
+}
+
+/// Seismic response analyser for one mass point systems.
+///
+/// 1質点系の地震応答解析器
+#[derive(Debug, Copy, Clone)]
+pub struct AbsResponseAccAnalyzer {
+    dt: f64,
+    hardness: f64,
+    mass: f64,
+    damping: f64,
+    beta: f64,
     init_x: f64,
     init_v: f64,
     init_a: f64,
@@ -38,15 +68,18 @@ pub struct ResponseAnalyzer {
 }
 
 
-/// 具体的な応答計算を行う
-///
-/// x: 変位
-/// v: 速度
-/// a: 加速度
-/// x_1: 次の変位
-/// v_1: 次の速度
-/// a_1: 次の加速度
-impl ResponseAnalyzer {
+// 具体的な応答計算を行う
+//
+// x: 変位
+// v: 速度
+// a: 加速度
+// x_1: 次の変位
+// v_1: 次の速度
+// a_1: 次の加速度
+impl AbsResponseAccAnalyzer {
+    /// Generate a response analyzer from parameters
+    ///
+    /// パラメータをもとに応答解析器を生成する
     pub fn from_params(params: ResponseAnalyzerParams) -> Self {
         Self {
             dt: params.dt_ms as f64 / 1000.,
@@ -80,6 +113,11 @@ impl ResponseAnalyzer {
         a + xg
     }
 
+    /// Calculate absolute response acceleration.
+    /// xg: input seismic motion [gal]
+    ///
+    /// 絶対応答加速度を計算する。
+    /// xg: 入力地震動 [gal]
     pub fn analyze(&mut self, mut xg: Vec<f64>) -> Vec<f64> {
         // 初期地震動を挿入
         xg.insert(0, self.init_xg);

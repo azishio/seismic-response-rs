@@ -20,10 +20,10 @@ pub struct ResponseAccAnalyzerParams {
     /// 質量 [kg]
     pub mass: f64,
 
-    /// Damping ratio
+    /// Damping constant
     ///
     /// 減衰定数
-    pub damping: f64,
+    pub damping_h: f64,
 
     /// β of Newmark-β method
     ///
@@ -59,7 +59,8 @@ pub struct ResponseAccAnalyzer {
     dt: f64,
     hardness: f64,
     mass: f64,
-    damping: f64,
+    // 減衰係数
+    damping_c: f64,
     beta: f64,
     init_x: f64,
     init_v: f64,
@@ -81,11 +82,13 @@ impl ResponseAccAnalyzer {
     ///
     /// パラメータをもとに応答解析器を生成する
     pub fn from_params(params: ResponseAccAnalyzerParams) -> Self {
+        let hardness = 4. * PI.powf(2.) * params.mass / (params.natural_period_ms as f64 / 1000.).powf(2.);
+        let damping_c = params.damping_h * 2. * (params.mass * hardness).sqrt();
         Self {
             dt: params.dt_ms as f64 / 1000.,
-            hardness: 4. * PI.powf(2.) * params.mass / (params.natural_period_ms as f64 / 1000.).powf(2.),
+            hardness,
             mass: params.mass,
-            damping: params.damping,
+            damping_c,
             beta: params.beta,
             init_x: params.init_x,
             init_v: params.init_v,
@@ -97,7 +100,7 @@ impl ResponseAccAnalyzer {
     fn a_1(&self, xg: f64, a: f64, v: f64, x: f64) -> f64 {
         let p_1 = -(xg * self.mass);
 
-        (p_1 - self.damping * (v + self.dt / 2. * a) - self.hardness * (x + self.dt + (1. / 2. - self.beta) * self.dt.powf(2.) * a)) / (self.mass + self.dt * self.damping / 2. + self.beta * self.dt.powf(2.) * self.hardness)
+        (p_1 - self.damping_c * (v + self.dt / 2. * a) - self.hardness * (x + self.dt * v + (1. / 2. - self.beta) * self.dt.powf(2.) * a)) / (self.mass + self.dt * self.damping_c / 2. + self.beta * self.dt.powf(2.) * self.hardness)
     }
 
     fn v_1(&self, a: f64, a_1: f64, v: f64) -> f64 {
@@ -138,8 +141,26 @@ impl ResponseAccAnalyzer {
             result.push((x_1, v_1, a_1));
         });
 
-        result.into_iter().zip(xg.iter()).map(|((_x, _v, a), xg)| {
-            Self::abs_response_acc(a, *xg)
+        result.into_iter().zip(xg).map(|((_x, _v, a), xg)| {
+            Self::abs_response_acc(a, xg)
         }).collect()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use csv::Reader;
+
+    #[test]
+    fn test() {
+        let mut csv = Reader::from_path("benches/211.csv").unwrap();
+        let data = csv.records().map(|x| {
+            let a = x.unwrap();
+            println!("{:?}", "demo");
+            println!("{:?}", "demo2".to_string());
+            println!("{:?}", a);
+        }).collect::<Vec<_>>();
+        println!("hoge");
+        panic!();
     }
 }

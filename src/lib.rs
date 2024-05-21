@@ -114,10 +114,10 @@ impl AbsResponseAccAnalyzer {
     }
 
     /// Calculate absolute response acceleration.
-    /// xg: input seismic motion [gal]
+    /// xg: Earthquake acceleration waveform [gal]
     ///
     /// 絶対応答加速度を計算する。
-    /// xg: 入力地震動 [gal]
+    /// xg: 地震の加速度波形 [gal]
     pub fn analyze(&mut self, mut xg: Vec<f64>) -> Vec<f64> {
         // 初期地震動を挿入
         xg.insert(0, self.init_xg);

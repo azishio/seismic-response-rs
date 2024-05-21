@@ -8,47 +8,47 @@ pub struct ResponseAccAnalyzerParams {
     /// /// Natural period [ms]
     ///
     /// 固有周期 [ms]
-    natural_period_ms: u32,
+    pub natural_period_ms: u32,
 
     /// Input data time resolution [ms]
     ///
     /// 入力データの時間分解能 [ms]
-    dt_ms: u32,
+    pub dt_ms: u32,
 
     /// Mass [kg]
     ///
     /// 質量 [kg]
-    mass: f64,
+    pub mass: f64,
 
     /// Damping ratio
     ///
     /// 減衰定数
-    damping: f64,
+    pub damping: f64,
 
     /// β of Newmark-β method
     ///
     /// ニューマークβ法のβ
-    beta: f64,
+    pub beta: f64,
 
     /// Initial response displacement [m]
     ///
     /// 初期応答変位 [m]
-    init_x: f64,
+    pub init_x: f64,
 
     /// Initial response velocity [m/s]
     ///
     /// 初期応答速度 [m/s]
-    init_v: f64,
+    pub init_v: f64,
 
     /// Initial response acceleration [gal]
     ///
     /// 初期応答加速度 [gal]
-    init_a: f64,
+    pub init_a: f64,
 
     /// Initial ground acceleration [gal]
     ///
     /// 初期地震動 [gal]
-    init_xg: f64,
+    pub init_xg: f64,
 }
 
 /// Seismic response analyser for one mass point systems.
@@ -118,7 +118,7 @@ impl ResponseAccAnalyzer {
     ///
     /// 絶対応答加速度を計算する。
     /// xg: 地震の加速度波形 [gal]
-    pub fn analyze(&mut self, mut xg: Vec<f64>) -> Vec<f64> {
+    pub fn analyze(&self, mut xg: Vec<f64>) -> Vec<f64> {
         // 初期地震動を挿入
         xg.insert(0, self.init_xg);
 

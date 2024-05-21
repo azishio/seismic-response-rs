@@ -4,7 +4,7 @@ use std::f64::consts::PI;
 ///
 /// 応答解析のパラメータ
 #[derive(Debug, Copy, Clone)]
-pub struct ResponseAnalyzerParams {
+pub struct ResponseAccAnalyzerParams {
     /// /// Natural period [ms]
     ///
     /// 固有周期 [ms]
@@ -55,7 +55,7 @@ pub struct ResponseAnalyzerParams {
 ///
 /// 1質点系の地震応答解析器
 #[derive(Debug, Copy, Clone)]
-pub struct AbsResponseAccAnalyzer {
+pub struct ResponseAccAnalyzer {
     dt: f64,
     hardness: f64,
     mass: f64,
@@ -76,11 +76,11 @@ pub struct AbsResponseAccAnalyzer {
 // x_1: 次の変位
 // v_1: 次の速度
 // a_1: 次の加速度
-impl AbsResponseAccAnalyzer {
+impl ResponseAccAnalyzer {
     /// Generate a response analyzer from parameters
     ///
     /// パラメータをもとに応答解析器を生成する
-    pub fn from_params(params: ResponseAnalyzerParams) -> Self {
+    pub fn from_params(params: ResponseAccAnalyzerParams) -> Self {
         Self {
             dt: params.dt_ms as f64 / 1000.,
             hardness: 4. * PI.powf(2.) * params.mass / (params.natural_period_ms as f64 / 1000.).powf(2.),

@@ -1,11 +1,18 @@
 use std::f64::consts::PI;
 
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
+use wasm_bindgen::prelude::*;
+
+mod wasm;
+
 /// Response analysis parameters
 ///
 /// 応答解析のパラメータ
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Tsify, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ResponseAccAnalyzerParams {
-    /// /// Natural period [ms]
+    /// Natural period [ms]
     ///
     /// 固有周期 [ms]
     pub natural_period_ms: u32,
@@ -50,6 +57,7 @@ pub struct ResponseAccAnalyzerParams {
     /// 初期地震動 [gal]
     pub init_xg: f64,
 }
+
 
 /// Seismic response analyser for one mass point systems.
 ///
@@ -151,16 +159,26 @@ impl ResponseAccAnalyzer {
 mod test {
     use csv::Reader;
 
+    use crate::{ResponseAccAnalyzer, ResponseAccAnalyzerParams};
+
     #[test]
     fn test() {
-        let mut csv = Reader::from_path("benches/211.csv").unwrap();
-        let data = csv.records().map(|x| {
-            let a = x.unwrap();
-            println!("{:?}", "demo");
-            println!("{:?}", "demo2".to_string());
-            println!("{:?}", a);
-        }).collect::<Vec<_>>();
-        println!("hoge");
-        panic!();
+        let mut csv = Reader::from_path("benches/seismic_acc_waveform.csv").unwrap();
+        let data = csv.deserialize::<f64>().map(|x| x.unwrap()).collect::<Vec<_>>();
+
+        let params = ResponseAccAnalyzerParams {
+            natural_period_ms: 500,
+            dt_ms: 10,
+            mass: 100.,
+            damping_h: 0.05,
+            beta: 0.25,
+            init_x: 0.0,
+            init_v: 0.0,
+            init_a: 0.0,
+            init_xg: 0.0,
+        };
+
+        let analyzer = ResponseAccAnalyzer::from_params(params);
+        analyzer.analyze(data);
     }
 }

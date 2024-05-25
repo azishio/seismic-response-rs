@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
-mod wasm;
-
 /// Response analysis parameters
 ///
 /// 応答解析のパラメータ
@@ -58,6 +56,7 @@ pub struct ResponseAccAnalyzerParams {
 ///
 /// 1質点系の地震応答解析器
 #[derive(Debug, Copy, Clone)]
+#[wasm_bindgen]
 pub struct ResponseAccAnalyzer {
     dt: f64,
     hardness: f64,
@@ -80,10 +79,12 @@ pub struct ResponseAccAnalyzer {
 // x_1: 次の変位
 // v_1: 次の速度
 // a_1: 次の加速度
+#[wasm_bindgen]
 impl ResponseAccAnalyzer {
     /// Generate a response analyzer from parameters
     ///
     /// パラメータをもとに応答解析器を生成する
+    #[wasm_bindgen]
     pub fn from_params(params: ResponseAccAnalyzerParams) -> Self {
         // 結果に質量は影響しないので1としている
         let mass = 100.;
@@ -193,6 +194,7 @@ impl ResponseAccAnalyzer {
     ///
     /// 絶対応答加速度を計算する。
     /// xg: 地震の加速度波形 [gal]
+    #[wasm_bindgen]
     pub fn analyze(&self, mut xg: Vec<f64>) -> Vec<f64> {
         // 初期地震動を挿入
         xg.insert(0, self.init_xg);

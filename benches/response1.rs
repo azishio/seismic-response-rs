@@ -10,7 +10,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let params = ResponseAccAnalyzerParams {
         natural_period_ms: 500,
         dt_ms: 10,
-        mass: 100.,
         damping_h: 0.05,
         beta: 0.25,
         init_x: 0.0,

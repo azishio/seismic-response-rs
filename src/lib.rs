@@ -9,7 +9,7 @@ mod wasm;
 /// Response analysis parameters
 ///
 /// 応答解析のパラメータ
-#[derive(Debug, Clone, Tsify, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Tsify, Serialize, Deserialize)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ResponseAccAnalyzerParams {
     /// Natural period [ms]
@@ -21,11 +21,6 @@ pub struct ResponseAccAnalyzerParams {
     ///
     /// 入力データの時間分解能 [ms]
     pub dt_ms: u32,
-
-    /// Mass [kg]
-    ///
-    /// 質量 [kg]
-    pub mass: f64,
 
     /// Damping constant
     ///
@@ -90,12 +85,15 @@ impl ResponseAccAnalyzer {
     ///
     /// パラメータをもとに応答解析器を生成する
     pub fn from_params(params: ResponseAccAnalyzerParams) -> Self {
-        let hardness = 4. * PI.powf(2.) * params.mass / (params.natural_period_ms as f64 / 1000.).powf(2.);
-        let damping_c = params.damping_h * 2. * (params.mass * hardness).sqrt();
+        // 結果に質量は影響しないので1としている
+        let mass = 100.;
+
+        let hardness = Self::calc_hardness(mass, params.natural_period_ms);
+        let damping_c = Self::calc_damping_c(params.damping_h, mass, hardness);
         Self {
             dt: params.dt_ms as f64 / 1000.,
             hardness,
-            mass: params.mass,
+            mass,
             damping_c,
             beta: params.beta,
             init_x: params.init_x,
@@ -103,6 +101,72 @@ impl ResponseAccAnalyzer {
             init_a: params.init_a,
             init_xg: params.init_xg,
         }
+    }
+
+    fn calc_hardness(mass: f64, natural_period_ms: u32) -> f64 {
+        4. * PI.powf(2.) * mass / (natural_period_ms as f64 / 1000.).powf(2.)
+    }
+
+    fn calc_damping_c(damping_h: f64, mass: f64, hardness: f64) -> f64 {
+        damping_h * 2. * (mass * hardness).sqrt()
+    }
+
+
+    /// This function does not affect the result. (Strictly speaking, it may have an effect due to floating point number errors.)
+    /// This function can be used to change parameters related to mass.
+    ///
+    /// この関数は結果に影響を与えません。（厳密には浮動小数点数の誤差があるため、影響があるかもしれません）
+    /// この関数を使用すると質量に関するパラメータを変更できます。
+    ///
+    /// [ResponseAccAnalyzerParams]には`mass`が含まれていませんが、それはmassが結果に影響を与えないためです。
+    /// この関数を使用することで、massを変更したときの影響を確認できます。
+    ///
+    /// [ResponseAccAnalyzerParams] does not include `mass` because mass does not affect the result.
+    /// You can use this function to check the effect of changing the mass.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use close_to::assert_close_to;
+    /// use csv::Reader;
+    /// use seismic_response::{ResponseAccAnalyzer, ResponseAccAnalyzerParams};
+    ///
+    /// let mut csv = Reader::from_path("benches/seismic_acc_waveform.csv").unwrap();
+    /// let data = csv.deserialize::<f64>().map(|x| x.unwrap()).collect::<Vec<_>>();
+    ///
+    /// let natural_period_ms = 500;
+    /// let damping_h = 0.05;
+    ///
+    /// let params = ResponseAccAnalyzerParams {
+    /// natural_period_ms,
+    /// damping_h,
+    /// dt_ms: 10,
+    /// beta: 0.25,
+    /// init_x: 0.0,
+    /// init_v: 0.0,
+    /// init_a: 0.0,
+    /// init_xg: 0.0,
+    /// };
+    ///
+    /// let mut analyzer = ResponseAccAnalyzer::from_params(params);
+    /// let result1 = analyzer.analyze(data.clone());
+    ///
+    /// let result2 = analyzer.set_mass(10., natural_period_ms, damping_h).analyze(data);
+    ///
+    /// result1.into_iter().zip(result2).for_each(|(r1, r2)| {
+    /// // Allow an error margin of 10^-10
+    /// // 10^-10の誤差を許容する
+    /// assert_close_to(r1, r2, 10);
+    /// });
+    /// ```
+    ///
+    /// このドキュメントは正しくビルドされたため、質量を変更しても結果に影響がないことがわかります。
+    /// You can see that this document was built correctly, so changing the mass will not affect the result.
+    pub fn set_mass(&mut self, mass: f64, natural_period_ms: u32, damping_h: f64) -> Self {
+        self.mass = mass;
+        self.hardness = Self::calc_hardness(mass, natural_period_ms);
+        self.damping_c = Self::calc_damping_c(damping_h, mass, self.hardness);
+        *self
     }
 
     fn a_1(&self, xg: f64, a: f64, v: f64, x: f64) -> f64 {
@@ -157,6 +221,7 @@ impl ResponseAccAnalyzer {
 
 #[cfg(test)]
 mod test {
+    use close_to::assert_close_to;
     use csv::Reader;
 
     use crate::{ResponseAccAnalyzer, ResponseAccAnalyzerParams};
@@ -169,7 +234,6 @@ mod test {
         let params = ResponseAccAnalyzerParams {
             natural_period_ms: 500,
             dt_ms: 10,
-            mass: 100.,
             damping_h: 0.05,
             beta: 0.25,
             init_x: 0.0,
@@ -180,5 +244,31 @@ mod test {
 
         let analyzer = ResponseAccAnalyzer::from_params(params);
         analyzer.analyze(data);
+    }
+
+    #[test]
+    fn same_result_change_mass() {
+        let mut csv = Reader::from_path("benches/seismic_acc_waveform.csv").unwrap();
+        let data = csv.deserialize::<f64>().map(|x| x.unwrap()).collect::<Vec<_>>();
+
+        let params = ResponseAccAnalyzerParams {
+            natural_period_ms: 500,
+            dt_ms: 10,
+            damping_h: 0.05,
+            beta: 0.25,
+            init_x: 0.0,
+            init_v: 0.0,
+            init_a: 0.0,
+            init_xg: 0.0,
+        };
+
+        let mut analyzer = ResponseAccAnalyzer::from_params(params);
+        let result1 = analyzer.analyze(data.clone());
+
+        let result2 = analyzer.set_mass(10., 500, 0.05).analyze(data);
+
+        result1.into_iter().zip(result2).for_each(|(r1, r2)| {
+            assert_close_to(r1, r2, 5);
+        });
     }
 }

@@ -1,9 +1,13 @@
-[English](README.md) | 日本語
+English | [日本語](README.ja.md)
 
 # seismic-response
 
-This module performs seismic response analysis for a single-degree-of-freedom system using the Newmark β method.
-From the earthquake acceleration waveform, the absolute response acceleration can be obtained.
+This crate performs seismic response analysis of a single-degree-of-freedom system using Newmark's β method.
+It can calculate the absolute response acceleration from the seismic acceleration waveform.
+
+If your goal is to perform seismic response analysis, you can also use
+the [calculation site](https://github.com/azishio/seismic-response-web) implemented using the wasm version of this
+crate.
 
 ## Usage
 
@@ -18,11 +22,11 @@ fn example() {
     let params = ResponseAccAnalyzerParams {
         // Natural period [ms]
         natural_period_ms: 500,
-        // Time increment of input acceleration waveform [ms]
+        // Time increment of the input acceleration waveform [ms]
         dt_ms: 10,
-        // Damping coefficient
+        // Damping constant
         damping_h: 0.05,
-        // β for Newmark's β method
+        // β of Newmark's β method
         beta: 0.25,
         // Initial response displacement [m]
         init_x: 0.0,
@@ -40,13 +44,18 @@ fn example() {
 }
 ```
 
-## Formulas
+## WebAssembly
 
-This program is implemented based on the following formulas.
+This program is published on npm as an [npm package](https://www.npmjs.com/package/seismic-response).
+It can be used in the same way as the Rust crate.
+
+## Equations
+
+This program is implemented based on the following equations.
 
 ### Stiffness Coefficient
 
-The stiffness coefficient \( k \) is calculated based on the mass \( m \) and the natural period in milliseconds \( T_
+Calculate the stiffness coefficient \( k \) based on the mass \( m \) and the natural period in milliseconds \( T_
 {\text{ms}} \):
 
 $$
@@ -55,7 +64,7 @@ $$
 
 ### Damping Coefficient
 
-The damping coefficient \( c \) is calculated based on the damping constant \( h \), mass \( m \), and stiffness
+Calculate the damping coefficient \( c \) based on the damping constant \( h \), mass \( m \), and stiffness
 coefficient \( k \):
 
 $$
@@ -66,14 +75,14 @@ $$
 
 #### Response Acceleration
 
-The acceleration \( a_{n+1} \) for the next step is calculated as:
+Calculate the acceleration at the next step \( a_{n+1} \):
 
 $$
 a_{n+1} = \frac{p_{n+1} - c\left(v_n + \frac{\Delta t}{2}a_n\right) - k\left(x_n + \Delta t v_n + \left(\frac{1}{2} -
 \beta\right)\Delta t^2 a_n\right)}{m + \frac{\Delta t}{2}c + \beta \Delta t^2 k}
 $$
 
-where the external force \( p_{n+1} \) is given by:
+Here, the external force \( p_{n+1} \) is given by:
 
 $$
 p_{n+1} = -xg_{n+1} m
@@ -81,7 +90,7 @@ $$
 
 #### Response Velocity
 
-The velocity \( v_{n+1} \) for the next step is calculated as:
+Calculate the velocity at the next step \( v_{n+1} \):
 
 $$
 v_{n+1} = v_n + \frac{\Delta t}{2}(a_n + a_{n+1})
@@ -89,7 +98,7 @@ $$
 
 #### Response Displacement
 
-The displacement \( x_{n+1} \) for the next step is calculated as:
+Calculate the displacement at the next step \( x_{n+1} \):
 
 $$
 x_{n+1} = x_n + \Delta t v_n + \left(\frac{1}{2} - \beta\right) \Delta t^2 a_n + \beta \Delta t^2 a_{n+1}
@@ -97,24 +106,25 @@ $$
 
 ### Absolute Response Acceleration
 
-The final absolute response acceleration \( a_{\text{abs}} \) is calculated as:
+Calculate the final absolute response acceleration \( a_{\text{abs}} \):
 
 $$
 a_{\text{abs}} = a + xg
 $$
 
-These are the primary calculations implemented within the program.
+These are the main equations implemented within the program.
 
 > [!NOTE]
-> Although the formulas treat the mass \( m \) as a variable, in the actual program, calculations are performed assuming
-> a mass of 1. This is because the mass does not affect the absolute response acceleration. This is verified in the test
-> code within the documentation.
+> In these equations, the mass \( m \) is treated as a variable, but in the actual program, calculations are performed
+> assuming a mass of 1.
+> This is because the mass does not affect the absolute response acceleration.
+> This can be confirmed in the test code within the documentation.
 
 ## License
 
-Licensed under either of
+Licensed under either of the following, at your option:
 
 + Apache License, Version 2.0, (LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0)
-+ MIT license (LICENSE-MIT or http://opensource.org/licenses/MIT)
++ MIT License (LICENSE-MIT or http://opensource.org/licenses/MIT)
 
-(The English documentation comments and README file have been translated using DeepL and ChatGPT.)
+(The English in the documentation comments and README file has been translated using DeepL and ChatGPT.)

@@ -40,6 +40,11 @@ fn example() {
 }
 ```
 
+## WebAssembly
+
+このプログラムは[npmパッケージ](https://www.npmjs.com/package/seismic-response)としてnpmに公開されています。
+Rustのクレートと同様に使用できます。
+
 ## 数式
 
 このプログラムは、次の数式に基づいて実装されています。

@@ -1,12 +1,13 @@
 English | [日本語](README.ja.md)
 
-# seismic-response
+# Seismic Response
 
-This crate performs seismic response analysis of a single-degree-of-freedom system using Newmark's β method.
-It can calculate the absolute response acceleration from the seismic acceleration waveform.
+Using Newmark's β method, we will perform seismic response analysis of a single-degree-of-freedom (SDOF) system. From
+the seismic acceleration waveform, we can determine the response displacement, response velocity, response acceleration,
+and absolute response acceleration.
 
-If your goal is to perform seismic response analysis, you can also use
-the [calculation site](https://github.com/azishio/seismic-response-web) implemented using the wasm version of this
+To conduct seismic response analysis, you can use
+the [calculation site](https://github.com/azishio/seismic-response-web) implemented using the WASM version of this
 crate.
 
 ## Usage
@@ -22,11 +23,11 @@ fn example() {
     let params = ResponseAccAnalyzerParams {
         // Natural period [ms]
         natural_period_ms: 500,
-        // Time increment of the input acceleration waveform [ms]
+        // Time step of the input acceleration waveform [ms]
         dt_ms: 10,
-        // Damping constant
+        // Damping ratio
         damping_h: 0.05,
-        // β of Newmark's β method
+        // Newmark's β method parameter
         beta: 0.25,
         // Initial response displacement [m]
         init_x: 0.0,
@@ -40,22 +41,35 @@ fn example() {
 
     let analyzer = ResponseAccAnalyzer::from_params(params);
 
-    let result: Vec<f64> = analyzer.analyze(data);
+    let result: Result = analyzer.analyze(data);
+    // struct Result {
+    //     /// Response displacement [m]
+    //     pub x: Vec<f64>,
+
+    //     /// Response velocity [m/s]
+    //     pub v: Vec<f64>,
+
+    //     /// Response acceleration [gal]
+    //     pub a: Vec<f64>,
+
+    //     /// Absolute response acceleration [gal]
+    //     pub abs_acc: Vec<f64>,
+    // }
 }
 ```
 
 ## WebAssembly
 
-This program is published on npm as an [npm package](https://www.npmjs.com/package/seismic-response).
-It can be used in the same way as the Rust crate.
+This program is published as an [npm package](https://www.npmjs.com/package/seismic-response). It can be used similarly
+to the Rust crate.
 
-## Equations
+## Mathematical Formulas
 
-This program is implemented based on the following equations.
+This program is implemented based on the following formulas:
 
 ### Stiffness Coefficient
 
-Calculate the stiffness coefficient \( k \) based on the mass \( m \) and the natural period in milliseconds \( T_
+The stiffness coefficient \( k \) is calculated based on the mass \( m \) and the natural period in milliseconds \( T_
 {\text{ms}} \):
 
 $$
@@ -64,7 +78,7 @@ $$
 
 ### Damping Coefficient
 
-Calculate the damping coefficient \( c \) based on the damping constant \( h \), mass \( m \), and stiffness
+The damping coefficient \( c \) is calculated based on the damping ratio \( h \), the mass \( m \), and the stiffness
 coefficient \( k \):
 
 $$
@@ -75,7 +89,7 @@ $$
 
 #### Response Acceleration
 
-Calculate the acceleration at the next step \( a_{n+1} \):
+The acceleration at the next step \( a_{n+1} \) is calculated as:
 
 $$
 a_{n+1} = \frac{p_{n+1} - c\left(v_n + \frac{\Delta t}{2}a_n\right) - k\left(x_n + \Delta t v_n + \left(\frac{1}{2} -
@@ -90,7 +104,7 @@ $$
 
 #### Response Velocity
 
-Calculate the velocity at the next step \( v_{n+1} \):
+The velocity at the next step \( v_{n+1} \) is calculated as:
 
 $$
 v_{n+1} = v_n + \frac{\Delta t}{2}(a_n + a_{n+1})
@@ -98,7 +112,7 @@ $$
 
 #### Response Displacement
 
-Calculate the displacement at the next step \( x_{n+1} \):
+The displacement at the next step \( x_{n+1} \) is calculated as:
 
 $$
 x_{n+1} = x_n + \Delta t v_n + \left(\frac{1}{2} - \beta\right) \Delta t^2 a_n + \beta \Delta t^2 a_{n+1}
@@ -106,25 +120,24 @@ $$
 
 ### Absolute Response Acceleration
 
-Calculate the final absolute response acceleration \( a_{\text{abs}} \):
+The final absolute response acceleration \( a_{\text{abs}} \) is calculated as:
 
 $$
 a_{\text{abs}} = a + xg
 $$
 
-These are the main equations implemented within the program.
+These are the main calculations implemented in the program.
 
-> [!NOTE]
-> In these equations, the mass \( m \) is treated as a variable, but in the actual program, calculations are performed
-> assuming a mass of 1.
-> This is because the mass does not affect the absolute response acceleration.
-> This can be confirmed in the test code within the documentation.
+> **Note:**
+> While the formulas here treat mass \( m \) as a variable, the actual program calculates assuming mass is 1. This is
+> because mass does not affect the absolute response acceleration. This can be confirmed in the test code within the
+> documentation.
 
 ## License
 
-Licensed under either of the following, at your option:
+Licensed under either of the following licenses:
 
 + Apache License, Version 2.0, (LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0)
-+ MIT License (LICENSE-MIT or http://opensource.org/licenses/MIT)
++ MIT license (LICENSE-MIT or http://opensource.org/licenses/MIT)
 
-(The English in the documentation comments and README file has been translated using DeepL and ChatGPT.)
+(Documentation comments and README file translations provided by DeepL and ChatGPT.)

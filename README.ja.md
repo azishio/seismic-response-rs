@@ -3,7 +3,7 @@
 # seismic-response
 
 Newmarkのβ法により1質点系の地震応答解析を行います。
-地震の加速度波形から、絶対応答加速度を求められます。
+地震の加速度波形から、応答変位、応答速度、応答加速度、絶対応答加速度を求められます。
 
 地震応答解析を行うことが目的であればこのクレートのwasmバージョンを使用して実装された[計算サイト](https://github.com/azishio/seismic-response-web)
 を利用することもできます。
@@ -39,7 +39,20 @@ fn example() {
 
     let analyzer = ResponseAccAnalyzer::from_params(params);
 
-    let result: Vec<f64> = analyzer.analyze(data);
+    let result: Result = analyzer.analyze(data);
+    // struct Result {
+    //     /// 応答変位 [m]
+    //     pub x: Vec<f64>,
+
+    //     /// 応答速度 [m/s]
+    //     pub v: Vec<f64>,
+
+    //     /// 応答加速度 [gal]
+    //     pub a: Vec<f64>,
+
+    //     /// 絶対応答加速度 [gal]
+    //     pub abs_acc: Vec<f64>,
+    // }
 }
 ```
 

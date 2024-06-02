@@ -70,6 +70,32 @@ pub struct ResponseAccAnalyzer {
     init_xg: f64,
 }
 
+/// Result of response analysis
+///
+/// 応答解析の結果
+#[derive(Debug)]
+#[wasm_bindgen(getter_with_clone)]
+pub struct Result {
+    /// Response displacement [m]
+    ///
+    /// 応答変位 [m]
+    pub x: Vec<f64>,
+
+    /// Response velocity [m/s]
+    ///
+    /// 応答速度 [m/s]
+    pub v: Vec<f64>,
+
+    /// Response acceleration [gal]
+    ///
+    /// 応答加速度 [gal]
+    pub a: Vec<f64>,
+
+    /// Absolute response acceleration [gal]
+    ///
+    /// 絶対応答加速度 [gal]
+    pub abs_acc: Vec<f64>,
+}
 
 // 具体的な応答計算を行う
 //
@@ -84,6 +110,8 @@ impl ResponseAccAnalyzer {
     /// Generate a response analyzer from parameters
     ///
     /// パラメータをもとに応答解析器を生成する
+    ///
+    ///g
     #[wasm_bindgen]
     pub fn from_params(params: ResponseAccAnalyzerParams) -> Self {
         // 結果に質量は影響しないので1としている
@@ -154,7 +182,7 @@ impl ResponseAccAnalyzer {
     ///
     /// let result2 = analyzer.set_mass(10., natural_period_ms, damping_h).analyze(data);
     ///
-    /// result1.into_iter().zip(result2).for_each(|(r1, r2)| {
+    /// result1.abs_acc.into_iter().zip(result2.abs_acc).for_each(|(r1, r2)| {
     /// // Allow an error margin of 10^-10
     /// // 10^-10の誤差を許容する
     /// assert_close_to(r1, r2, 10);
@@ -195,29 +223,39 @@ impl ResponseAccAnalyzer {
     /// 絶対応答加速度を計算する。
     /// xg: 地震の加速度波形 [gal]
     #[wasm_bindgen]
-    pub fn analyze(&self, mut xg: Vec<f64>) -> Vec<f64> {
+    pub fn analyze(&self, mut xg: Vec<f64>) -> Result {
         // 初期地震動を挿入
         xg.insert(0, self.init_xg);
 
-        let mut result = Vec::<(f64, f64, f64)>::with_capacity(xg.len());
+        let mut result = Result {
+            x: Vec::with_capacity(xg.len()),
+            v: Vec::with_capacity(xg.len()),
+            a: Vec::with_capacity(xg.len()),
+            abs_acc: Vec::with_capacity(xg.len()),
+        };
 
-        // 初期条件を挿入
-        result.push((self.init_x, self.init_v, self.init_a));
+        result.x.push(self.init_x);
+        result.v.push(self.init_v);
+        result.a.push(self.init_a);
 
         (0..xg.len()).for_each(|i| {
-            let (x, v, a) = result[i];
+            let x = result.x[i];
+            let v = result.v[i];
+            let a = result.a[i];
+
             let xg = xg[i];
 
             let a_1 = self.a_1(xg, a, v, x);
             let v_1 = self.v_1(a, a_1, v);
             let x_1 = self.x_1(a, a_1, v, x);
 
-            result.push((x_1, v_1, a_1));
+            result.x.push(x_1);
+            result.v.push(v_1);
+            result.a.push(a_1);
+            result.abs_acc.push(Self::abs_response_acc(a_1, xg));
         });
 
-        result.into_iter().zip(xg).map(|((_x, _v, a), xg)| {
-            Self::abs_response_acc(a, xg)
-        }).collect()
+        result
     }
 }
 
@@ -269,7 +307,7 @@ mod test {
 
         let result2 = analyzer.set_mass(10., 500, 0.05).analyze(data);
 
-        result1.into_iter().zip(result2).for_each(|(r1, r2)| {
+        result1.abs_acc.into_iter().zip(result2.abs_acc).for_each(|(r1, r2)| {
             assert_close_to(r1, r2, 5);
         });
     }

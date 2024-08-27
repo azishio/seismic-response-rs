@@ -183,10 +183,20 @@ impl ResponseAccAnalyzer {
     #[wasm_bindgen]
     pub fn from_params(params: ResponseAccAnalyzerParams) -> Self {
         // 結果に質量は影響しないので1としている
-        let mass = 100.;
+        let mass = 1.;
+        let ResponseAccAnalyzerParams {
+            natural_period_ms,
+            dt_ms,
+            damping_h,
+            beta,
+            init_x,
+            init_v,
+            init_a,
+            init_xg,
+        } = params;
 
-        let hardness = Self::calc_hardness(mass, params.natural_period_ms);
-        let damping_c = Self::calc_damping_c(params.damping_h, mass, hardness);
+        let hardness = Self::calc_hardness(mass, natural_period_ms);
+        let damping_c = Self::calc_damping_c(damping_h, mass, hardness);
         Self {
             dt: dt_ms as f64 / 1000.,
             natural_period_ms,
@@ -194,11 +204,11 @@ impl ResponseAccAnalyzer {
             mass,
             damping_h,
             damping_c,
-            beta: params.beta,
-            init_x: params.init_x,
-            init_v: params.init_v,
-            init_a: params.init_a,
-            init_xg: params.init_xg,
+            beta,
+            init_x,
+            init_v,
+            init_a,
+            init_xg,
         }
     }
 
@@ -209,7 +219,6 @@ impl ResponseAccAnalyzer {
     pub(crate) fn calc_damping_c(damping_h: f64, mass: f64, hardness: f64) -> f64 {
         damping_h * 2. * (mass * hardness).sqrt()
     }
-
 
     /// This function does not affect the result. (Strictly speaking, it may have an effect due to floating point number errors.)
     /// This function can be used to change parameters related to mass.
@@ -271,7 +280,11 @@ impl ResponseAccAnalyzer {
     fn a_1(&self, xg: f64, a: f64, v: f64, x: f64) -> f64 {
         let p_1 = -(xg * self.mass);
 
-        (p_1 - self.damping_c * (v + self.dt / 2. * a) - self.hardness * (x + self.dt * v + (1. / 2. - self.beta) * self.dt.powf(2.) * a)) / (self.mass + self.dt * self.damping_c / 2. + self.beta * self.dt.powf(2.) * self.hardness)
+        (p_1 - self.damping_c * (v + self.dt / 2. * a)
+            - self.hardness * (x + self.dt * v + (1. / 2. - self.beta) * self.dt.powf(2.) * a))
+            / (self.mass
+                + self.dt * self.damping_c / 2.
+                + self.beta * self.dt.powf(2.) * self.hardness)
     }
 
     fn v_1(&self, a: f64, a_1: f64, v: f64) -> f64 {
@@ -279,7 +292,9 @@ impl ResponseAccAnalyzer {
     }
 
     fn x_1(&self, a: f64, a_1: f64, v: f64, x: f64) -> f64 {
-        x + v * self.dt + (1. / 2. - self.beta) * a * self.dt.powf(2.) + self.beta * a_1 * self.dt.powf(2.)
+        x + v * self.dt
+            + (1. / 2. - self.beta) * a * self.dt.powf(2.)
+            + self.beta * a_1 * self.dt.powf(2.)
     }
 
     // 絶対応答加速度
@@ -339,7 +354,10 @@ mod test {
     #[test]
     fn test() {
         let mut csv = Reader::from_path("benches/seismic_acc_waveform.csv").unwrap();
-        let data = csv.deserialize::<f64>().map(|x| x.unwrap()).collect::<Vec<_>>();
+        let data = csv
+            .deserialize::<f64>()
+            .map(|x| x.unwrap())
+            .collect::<Vec<_>>();
 
         let params = ResponseAccAnalyzerParams {
             natural_period_ms: 500,
@@ -359,7 +377,10 @@ mod test {
     #[test]
     fn same_result_change_mass() {
         let mut csv = Reader::from_path("benches/seismic_acc_waveform.csv").unwrap();
-        let data = csv.deserialize::<f64>().map(|x| x.unwrap()).collect::<Vec<_>>();
+        let data = csv
+            .deserialize::<f64>()
+            .map(|x| x.unwrap())
+            .collect::<Vec<_>>();
 
         let params = ResponseAccAnalyzerParams {
             natural_period_ms: 500,
@@ -377,9 +398,13 @@ mod test {
 
         let result2 = analyzer.set_mass(10., 500, 0.05).analyze(data);
 
-        result1.abs_acc.into_iter().zip(result2.abs_acc).for_each(|(r1, r2)| {
-            assert_close_to(r1, r2, 5);
-        });
+        result1
+            .abs_acc
+            .into_iter()
+            .zip(result2.abs_acc)
+            .for_each(|(r1, r2)| {
+                assert_close_to(r1, r2, 5);
+            });
     }
 
     #[test]

@@ -41,7 +41,7 @@ fn example() {
 
     let analyzer = ResponseAccAnalyzer::from_params(params);
 
-    let result: Result = analyzer.analyze(data);
+    let result: Result = analyzer.analyze(&data);
     // struct Result {
     //     /// Response displacement [m]
     //     pub x: Vec<f64>,

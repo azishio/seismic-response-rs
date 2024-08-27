@@ -39,7 +39,7 @@ fn example() {
 
     let analyzer = ResponseAccAnalyzer::from_params(params);
 
-    let result: Result = analyzer.analyze(data);
+    let result: Result = analyzer.analyze(&data);
     // struct Result {
     //     /// 応答変位 [m]
     //     pub x: Vec<f64>,

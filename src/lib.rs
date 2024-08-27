@@ -257,9 +257,9 @@ impl ResponseAccAnalyzer {
     /// };
     ///
     /// let mut analyzer = ResponseAccAnalyzer::from_params(params);
-    /// let result1 = analyzer.analyze(data.clone());
+    /// let result1 = analyzer.analyze(&data);
     ///
-    /// let result2 = analyzer.set_mass(10., natural_period_ms, damping_h).analyze(data);
+    /// let result2 = analyzer.set_mass(10., natural_period_ms, damping_h).analyze(&data);
     ///
     /// result1.abs_acc.into_iter().zip(result2.abs_acc).for_each(|(r1, r2)| {
     /// // Allow an error margin of 10^-10
@@ -308,27 +308,26 @@ impl ResponseAccAnalyzer {
     /// 絶対応答加速度を計算する。
     /// xg: 地震の加速度波形 [gal]
     #[wasm_bindgen]
-    pub fn analyze(&self, mut xg: Vec<f64>) -> Result {
+    pub fn analyze(&self, xg: &[f64]) -> Result {
+        let len = xg.len() + 1;
         // 初期地震動を挿入
-        xg.insert(0, self.init_xg);
+        let xg = [&self.init_xg].into_iter().chain(xg);
 
         let mut result = Result {
-            x: Vec::with_capacity(xg.len()),
-            v: Vec::with_capacity(xg.len()),
-            a: Vec::with_capacity(xg.len()),
-            abs_acc: Vec::with_capacity(xg.len()),
+            x: Vec::with_capacity(len),
+            v: Vec::with_capacity(len),
+            a: Vec::with_capacity(len),
+            abs_acc: Vec::with_capacity(len),
         };
 
         result.x.push(self.init_x);
         result.v.push(self.init_v);
         result.a.push(self.init_a);
 
-        (0..xg.len()).for_each(|i| {
+        xg.enumerate().for_each(|(i, &xg)| {
             let x = result.x[i];
             let v = result.v[i];
             let a = result.a[i];
-
-            let xg = xg[i];
 
             let a_1 = self.a_1(xg, a, v, x);
             let v_1 = self.v_1(a, a_1, v);
@@ -371,7 +370,7 @@ mod test {
         };
 
         let analyzer = ResponseAccAnalyzer::from_params(params);
-        analyzer.analyze(data);
+        analyzer.analyze(&data);
     }
 
     #[test]
@@ -394,9 +393,9 @@ mod test {
         };
 
         let mut analyzer = ResponseAccAnalyzer::from_params(params);
-        let result1 = analyzer.analyze(data.clone());
+        let result1 = analyzer.analyze(&data);
 
-        let result2 = analyzer.set_mass(10., 500, 0.05).analyze(data);
+        let result2 = analyzer.set_mass(10., 500, 0.05).analyze(&data);
 
         result1
             .abs_acc

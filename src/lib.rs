@@ -1,5 +1,7 @@
 use std::f64::consts::PI;
 
+use typed_builder::TypedBuilder;
+
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -51,22 +53,88 @@ pub struct ResponseAccAnalyzerParams {
     pub init_xg: f64,
 }
 
-
 /// Seismic response analyser for one mass point systems.
 ///
 /// 1質点系の地震応答解析器
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, TypedBuilder)]
 #[wasm_bindgen]
+#[builder(mutators(
+    #[mutator(requires = [natural_period_ms, mass])]
+    fn calc_hardness(self){
+        self.hardness = ResponseAccAnalyzer::calc_hardness(self.mass , self.natural_period_ms);
+    }
+
+    #[mutator(requires = [hardness, damping_h, mass])]
+    fn calc_damping_c(self){
+        self.damping_c = ResponseAccAnalyzer::calc_damping_c(self.damping_h, self.mass, self.hardness);
+    }
+))]
 pub struct ResponseAccAnalyzer {
+    /// 固有周期 [ms]
+    #[allow(dead_code)]
+    natural_period_ms: u32,
+
+    /// Input data time resolution [s]
+    /// default = 0.01
+    ///
+    /// 入力データの時間分解能 [s]
+    #[builder(default = 0.01)]
     dt: f64,
+
+    /// Calculated by mass and natural_period_ms.
+    #[builder(via_mutators)]
     hardness: f64,
+
+    /// default = 1.
+    ///
+    /// This parameter does not affect the result.
+    #[builder(default = 1.)]
     mass: f64,
-    // 減衰係数
+
+    /// default = 0.05
+    ///
+    /// 減衰定数
+    #[allow(dead_code)]
+    #[builder(default = 0.05)]
+    damping_h: f64,
+
+    /// Calculated by hardness, damping_h and mass.
+    ///
+    /// 減衰係数
+    #[builder(via_mutators)]
     damping_c: f64,
+
+    /// Newmark-β method β
+    /// default = 0.25
+    #[builder(default = 0.25)]
     beta: f64,
+
+    /// Initial response displacement [m]
+    /// default = 0.
+    ///
+    /// 初期応答変位 [m]
+    #[builder(default)]
     init_x: f64,
+
+    /// Initial response velocity [m/s]
+    /// default = 0.
+    ///
+    /// 初期応答速度 [m/s]
+    #[builder(default)]
     init_v: f64,
+
+    /// Initial response acceleration [gal]
+    /// default = 0.
+    ///
+    /// 初期応答加速度 [gal]
+    #[builder(default)]
     init_a: f64,
+
+    /// Initial ground acceleration [gal]
+    /// default = 0.
+    ///
+    /// 初期地震動 [gal]
+    #[builder(default)]
     init_xg: f64,
 }
 
@@ -120,9 +188,11 @@ impl ResponseAccAnalyzer {
         let hardness = Self::calc_hardness(mass, params.natural_period_ms);
         let damping_c = Self::calc_damping_c(params.damping_h, mass, hardness);
         Self {
-            dt: params.dt_ms as f64 / 1000.,
+            dt: dt_ms as f64 / 1000.,
+            natural_period_ms,
             hardness,
             mass,
+            damping_h,
             damping_c,
             beta: params.beta,
             init_x: params.init_x,
@@ -132,11 +202,11 @@ impl ResponseAccAnalyzer {
         }
     }
 
-    fn calc_hardness(mass: f64, natural_period_ms: u32) -> f64 {
+    pub(crate) fn calc_hardness(mass: f64, natural_period_ms: u32) -> f64 {
         4. * PI.powf(2.) * mass / (natural_period_ms as f64 / 1000.).powf(2.)
     }
 
-    fn calc_damping_c(damping_h: f64, mass: f64, hardness: f64) -> f64 {
+    pub(crate) fn calc_damping_c(damping_h: f64, mass: f64, hardness: f64) -> f64 {
         damping_h * 2. * (mass * hardness).sqrt()
     }
 
@@ -310,5 +380,10 @@ mod test {
         result1.abs_acc.into_iter().zip(result2.abs_acc).for_each(|(r1, r2)| {
             assert_close_to(r1, r2, 5);
         });
+    }
+
+    #[test]
+    fn analyzer_builder() {
+        let _analyser = ResponseAccAnalyzer::builder().natural_period_ms(10).build();
     }
 }
